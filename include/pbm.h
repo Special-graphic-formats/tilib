@@ -28,6 +28,7 @@ typedef struct
   int width;   /* image width */
   int height;  /* image height */
   int max_val; /* maximal sample value */
+  int file_size;
 } pbm_hdr;
 
 int read_hdr(FILE *f, pbm_hdr *h);

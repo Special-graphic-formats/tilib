@@ -1,6 +1,6 @@
-0.9.0
+1.0.0
 
-  * initial version
+  * library version
 
 0.9.1
 
@@ -11,3 +11,8 @@
   * separate TiLib package for Win32 (VC6 project) and UNIX (autoconf)
 
   * some minor bugfixes in ticodec
+
+0.9.0
+
+  * initial version
+

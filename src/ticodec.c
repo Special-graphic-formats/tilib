@@ -39,10 +39,11 @@
 #define OPT_INPUT       2
 #define OPT_OUTPUT      3
 #define OPT_SIZE        4
-#define OPT_BUTTERWORTH 5
-#define OPT_DAUBECHIES  6
-#define OPT_LEVELS      7
-#define OPT_HELP        8
+#define OPT_QUANT       5
+#define OPT_BUTTERWORTH 6
+#define OPT_DAUBECHIES  7
+#define OPT_LEVELS      8
+#define OPT_HELP        9
 
 int encode;
 char infile[MAX_LINE];  /* Input file name */
@@ -52,12 +53,13 @@ int lum;                /* Bit budget for Y channel */
 int cb;                 /* Bit budget for Cb channel */
 int cr;                 /* Bit budget for Cr channel */
 int size;               /* Desired encoded image size */
+int quant;
 int filter;             /* Use Butterworth or Daubechies filter */
 
 void usage()
 {
   printf(
-"TiCodec - lossy image compressor based on TiLib ver 0.9.1\n"
+"TiCodec - lossy image compressor based on TiLib ver 1.0.0\n"
 "Copyleft (C) 2004 Alexander Simakov, xander@entropyware.info\n"
 "http://www.entropyware.info\n"
 "Usage: ticodec [options]\n"
@@ -66,6 +68,7 @@ void usage()
 "-i, --input <filename>: Input file name\n"
 "-o, --output <filename>: Output file name\n"
 "-s, --size <num>: Desired encoded file size in bytes\n"
+"-q, --quant <num>: Result file size is part of origin size {1..256}\n"
 "-B, --butterworth: Use Butterworth wavelet transform\n"
 "-D, --daubechies: Use Daubechies 9/7 wavelet transform (default)\n"
 "-l, --levels <num>: Number of DWT transform levels (default = 5)\n"
@@ -88,13 +91,14 @@ void validate_args(int argc, char **argv)
   {
     {"encode",      no_argument,       0, OPT_ENCODE},
     {"decode",      no_argument,       0, OPT_DECODE},
-	{"input",       required_argument, 0, OPT_INPUT},
-	{"output",      required_argument, 0, OPT_OUTPUT},
-	{"size",        required_argument, 0, OPT_SIZE},
-	{"butterworth", no_argument,       0, OPT_BUTTERWORTH},
-	{"daubechies",  no_argument,       0, OPT_DAUBECHIES},
-	{"levels",      required_argument, 0, OPT_LEVELS},
-	{"help",        no_argument,       0, OPT_HELP},
+    {"input",       required_argument, 0, OPT_INPUT},
+    {"output",      required_argument, 0, OPT_OUTPUT},
+    {"size",        required_argument, 0, OPT_SIZE},
+    {"quant",       required_argument, 0, OPT_QUANT},
+    {"butterworth", no_argument,       0, OPT_BUTTERWORTH},
+    {"daubechies",  no_argument,       0, OPT_DAUBECHIES},
+    {"levels",      required_argument, 0, OPT_LEVELS},
+    {"help",        no_argument,       0, OPT_HELP},
     {0,             0,                 0, 0}
   };
   int opt;
@@ -103,114 +107,124 @@ void validate_args(int argc, char **argv)
 
   opterr = 0;
 
-  while ((opt = getopt_long(argc, argv, "edi:o:s:BDl:y:b:r:", opts, NULL)) != -1)
+  while ((opt = getopt_long(argc, argv, "edi:o:s:q:BDl:y:b:r:", opts, NULL)) != -1)
   {
     switch (opt)
-	{
+    {
       case 'e':
-	  case OPT_ENCODE:
-	  {
-		if (ed_flg) usage();
-		ed_flg = 1; encode = 1;
-		break;
-	  }
-	  
-	  case 'd':
-	  case OPT_DECODE:
-	  {
-		if (ed_flg) usage();
-		ed_flg = 1; encode = 0;
-		break;
-	  }
-	  
-	  case 'i':
-	  case OPT_INPUT:
-	  {
+      case OPT_ENCODE:
+      {
+        if (ed_flg) usage();
+        ed_flg = 1; encode = 1;
+        break;
+      }
+      
+      case 'd':
+      case OPT_DECODE:
+      {
+        if (ed_flg) usage();
+        ed_flg = 1; encode = 0;
+        break;
+      }
+      
+      case 'i':
+      case OPT_INPUT:
+      {
         if (i_flg) usage();
         i_flg = 1;
-		snprintf(infile, sizeof(infile), "%s", optarg);  
-		break;
-	  }
+        snprintf(infile, sizeof(infile), "%s", optarg);  
+        break;
+      }
 
-	  case 'o':
-	  case OPT_OUTPUT:
-	  {
+      case 'o':
+      case OPT_OUTPUT:
+      {
         if (o_flg) usage();
         o_flg = 1;
-		snprintf(outfile, sizeof(outfile), "%s", optarg);  
-		break;
-	  }
+        snprintf(outfile, sizeof(outfile), "%s", optarg);  
+        break;
+      }
 
       case 's':
-	  case OPT_SIZE:
-	  {
-		if (s_flg) usage();
-		s_flg = 1;
-		size = atoi(optarg);
-		break;
-	  }
+      case OPT_SIZE:
+      {
+        if (s_flg) usage();
+        s_flg = 1;
+        size = atoi(optarg);
+        break;
+      }
+
+      case 'q':
+      case OPT_QUANT:
+      {
+        if (s_flg) usage();
+        s_flg = 1;
+        quant = atoi(optarg);
+        if ((quant < 1) || (quant > 256)) usage();
+        break;
+      }
 
       case 'l':
-	  case OPT_LEVELS:
-	  {
-		if (l_flg) usage();
-		l_flg = 1;
-		levels = atoi(optarg);
-		break;
-	  }
+      case OPT_LEVELS:
+      {
+        if (l_flg) usage();
+        l_flg = 1;
+        levels = atoi(optarg);
+        break;
+      }
 
-	  case 'B':
-	  case OPT_BUTTERWORTH:
-	  {
-	    if (BD_flg) usage();
-		BD_flg = 1;
-		filter = BUTTERWORTH;
-		break;
-	  }	  
+      case 'B':
+      case OPT_BUTTERWORTH:
+      {
+        if (BD_flg) usage();
+        BD_flg = 1;
+        filter = BUTTERWORTH;
+        break;
+      }   
 
-	  case 'D':
-	  case OPT_DAUBECHIES:
-	  {
-	    if (BD_flg) usage();
-		BD_flg = 1;
-		filter = DAUB97;
-		break;
-	  }	  
-	  
+      case 'D':
+      case OPT_DAUBECHIES:
+      {
+        if (BD_flg) usage();
+        BD_flg = 1;
+        filter = DAUB97;
+        break;
+      }   
+      
       case 'y':
-	  {
-		if (y_flg) usage();
-		y_flg = 1;
-		lum = atoi(optarg);
-		break;
-	  }
+      {
+        if (y_flg) usage();
+        y_flg = 1;
+        lum = atoi(optarg);
+        break;
+      }
 
       case 'b':
-	  {
-		if (b_flg) usage();
-		b_flg = 1;
-		cb = atoi(optarg);
-		break;
-	  }
-	  
+      {
+        if (b_flg) usage();
+        b_flg = 1;
+        cb = atoi(optarg);
+        break;
+      }
+      
       case 'r':
-	  {
-		if (r_flg) usage();
-		r_flg = 1;
-		cr = atoi(optarg);
-		break;
-	  }
-	  
-	  case ':':
-	  case '?':
-	  case 'h':
-	  case OPT_HELP:
-	  default:
-	  {
-	    usage();
-		break;
-	  }
-	  }
+      {
+        if (r_flg) usage();
+        r_flg = 1;
+        cr = atoi(optarg);
+        break;
+      }
+      
+      case ':':
+      case '?':
+      case 'h':
+      case OPT_HELP:
+      default:
+      {
+        usage();
+        break;
+      }
+      }
   }
 
   if (optind < argc) usage();
@@ -221,7 +235,7 @@ void validate_args(int argc, char **argv)
 
   if (encode == 1) {
     if (s_flg == 0) usage();
-    if (size < 26) usage(); /* HDRSIZE + 2 + 2 + 2 */
+    if ((size < 26) && (quant < 1)) usage(); /* HDRSIZE + 2 + 2 + 2 */
     if ((y_flg + b_flg + r_flg) != 0 && (y_flg + b_flg + r_flg) != 3) usage();
     if (l_flg == 0) levels = 0;
     if (BD_flg == 0) filter = DAUB97;
@@ -259,6 +273,8 @@ void CompressFile()
 
   width = h.width;
   height = h.height;
+  size = (quant > 0) ? (h.file_size / quant) : size;
+  size = (size < 26) ? 26 : size;
 
   /* allocate memory */
 

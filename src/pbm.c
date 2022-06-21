@@ -87,6 +87,7 @@ int read_hdr(FILE *f, pbm_hdr *h)
   h->width = get_integer(f);
   h->height = get_integer(f);
   h->max_val = get_integer(f);
+  h->file_size = file_size(f);
 
   /* (width * height * pixel_size) must be equal to the image size */
   if (file_size(f) - ftell(f) != h->width * h->height * (h->type == PGM ? 1 : 3)) return -1;
